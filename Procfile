@@ -1,1 +1,1 @@
-web: gunicorn app:CBC
+web: gunicorn CBC:app
