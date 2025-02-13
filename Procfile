@@ -1,1 +1,1 @@
-web: gunicorn CBC:app
+web: gunicorn CBC:server
