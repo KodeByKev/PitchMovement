@@ -148,6 +148,8 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, vertical, 
     
     return fig, data_json
 
+server = app.server
+
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
