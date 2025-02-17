@@ -39,7 +39,8 @@ app.layout = html.Div([
         
         html.Button('Add Data Point', id='add-point', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
         html.Button('Delete Most Recent Point', id='delete-recent', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
-        html.Button('Delete All Data', id='delete-all', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'})
+        html.Button('Delete All Data', id='delete-all', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
+        html.Button('Reset Axes', id='reset-axes', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'})
     ]),
     
     # Graph
@@ -55,14 +56,15 @@ app.layout = html.Div([
      Output('data-store', 'children')],
     [Input('add-point', 'n_clicks'),
      Input('delete-recent', 'n_clicks'),
-     Input('delete-all', 'n_clicks')],
+     Input('delete-all', 'n_clicks'),
+     Input('reset-axes', 'n_clicks')],
     [State('horizontal-movement', 'value'),
      State('vertical-movement', 'value'),
      State('pitch-speed', 'value'),
      State('pitch-type', 'value'),
      State('data-store', 'children')]
 )
-def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, vertical, horizontal, speed, pitch_type, data_store):
+def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes_clicks, vertical, horizontal, speed, pitch_type, data_store):
     # Initialize an empty DataFrame if no data exists
     if data_store is None:
         data = pd.DataFrame(columns=['Horizontal (IN)', 'Vertical (IN)', 'Velo (MPH)', 'Pitch', 'Pitch#'])
@@ -122,8 +124,31 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, vertical, 
         title_font_color="darkblue",
         xaxis_title="Horizontal (IN)",
         yaxis_title="Vertical (IN)",
-        xaxis=dict(title_font=dict(size=18, family="Roboto")),
-        yaxis=dict(title_font=dict(size=18, family="Roboto"))
+        xaxis=dict(
+            title_font=dict(size=18, family="Roboto"),
+            range=[-20, 20],  # Fixed x-axis range
+            scaleanchor="y",  # Ensure x and y axes are scaled equally
+            scaleratio=1,  # Maintain a 1:1 aspect ratio
+            showgrid=True,
+            gridcolor="lightgray",  # Light gray gridlines
+            gridwidth=1,  # Thin gridlines
+            zeroline=True,  # Show the x=0 line
+            zerolinewidth=2,  # Bold x=0 line
+            zerolinecolor='black'  # Color of the x=0 line
+        ),
+        yaxis=dict(
+            title_font=dict(size=18, family="Roboto"),
+            range=[-20, 20],  # Fixed y-axis range
+            showgrid=True,
+            gridcolor="lightgray",  # Light gray gridlines
+            gridwidth=1,  # Thin gridlines
+            zeroline=True,  # Show the y=0 line
+            zerolinewidth=2,  # Bold y=0 line
+            zerolinecolor='black'  # Color of the y=0 line
+        ),
+        plot_bgcolor='white',  # Set background color to white
+        width=800,  # Set a fixed width for the graph
+        height=800  # Set a fixed height for the graph (to make it square)
     )
     
     # Add circular shaded regions for variance
@@ -137,9 +162,9 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, vertical, 
                 x1=var['Horizontal Mean'] + np.sqrt(var['Horizontal Variance']),
                 y0=var['Vertical Mean'] - np.sqrt(var['Vertical Variance']),
                 y1=var['Vertical Mean'] + np.sqrt(var['Vertical Variance']),
-                line=dict(color=color),
+                line=dict(color=color, width=1),  # Add a thin border
                 fillcolor=color,
-                opacity=0.2,  # Adjust opacity for better visibility
+                opacity=0.1,  # Reduce opacity to minimize blending artifacts
                 layer="below"
             )
     
