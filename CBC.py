@@ -9,10 +9,27 @@ app = dash.Dash(__name__)
 
 # Define the pitch types in the specified order
 pitch_types = [
-    "2-seam", "4-seam", "Changeup", "Curveball", "Slider", "Sinker", 
+    "Fastball", "Changeup", "Curveball", "Slider", "Sinker", 
     "Splitter", "Cutter", "Circle Change", "Knuckle Curve", "Slurve", 
     "Sweeper", "Knuckleball"
 ]
+
+# Define the custom color mapping for pitch types
+pitch_colors = {
+    "Fastball": "red",        # Fastball
+    "Changeup": "green",    # Changeup
+    "Curveball": "blue",    # Curveball
+    "Slider": "yellow",     # Slider
+    "Sinker": "orange",     # Sinker
+    "Splitter": "teal",     # Splitter
+    "Cutter": "saddlebrown",  # Cutter
+    "Sweeper": "goldenrod",   # Sweeper
+    # Default colors for other pitch types
+    "Circle Change": "purple",
+    "Knuckle Curve": "pink",
+    "Slurve": "cyan",
+    "Knuckleball": "gray"
+}
 
 # Layout of the app
 app.layout = html.Div([
@@ -114,7 +131,8 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
     fig = px.scatter(data, x='Horizontal (IN)', y='Vertical (IN)', 
                      color='Pitch', hover_data=['Velo (MPH)', 'Pitch', 'Pitch#'],
                      title="Pitch Movement Visualization",
-                     size_max=20)  # Increase dot size
+                     size_max=20,  # Increase dot size
+                     color_discrete_map=pitch_colors)  # Use custom pitch colors
     
     # Update layout for a cool font and larger dots
     fig.update_traces(marker=dict(size=12))  # Larger dots
@@ -155,7 +173,7 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
     for var in variance_data:
         if not np.isnan(var['Horizontal Variance']) and not np.isnan(var['Vertical Variance']):
             # Get the color for the pitch type
-            color = px.colors.qualitative.Plotly[data['Pitch'].unique().tolist().index(var['Pitch'])]
+            color = pitch_colors[var['Pitch']]
             
             # Add shaded circle for the average
             fig.add_shape(
