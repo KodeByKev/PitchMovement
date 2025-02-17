@@ -96,7 +96,7 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
         # Delete all data
         data = pd.DataFrame(columns=['Horizontal (IN)', 'Vertical (IN)', 'Velo (MPH)', 'Pitch', 'Pitch#'])
     
-    # Calculate variance for each pitch type
+    # Calculate variance and mean for each pitch type
     variance_data = []
     for pitch in data['Pitch'].unique():
         pitch_data = data[data['Pitch'] == pitch]
@@ -151,20 +151,33 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
         height=800  # Set a fixed height for the graph (to make it square)
     )
     
-    # Add circular shaded regions for variance
+    # Add shaded circles for the average and dotted lines for the variance
     for var in variance_data:
         if not np.isnan(var['Horizontal Variance']) and not np.isnan(var['Vertical Variance']):
             # Get the color for the pitch type
             color = px.colors.qualitative.Plotly[data['Pitch'].unique().tolist().index(var['Pitch'])]
+            
+            # Add shaded circle for the average
+            fig.add_shape(
+                type="circle",
+                x0=var['Horizontal Mean'] - 1,  # Small radius for average
+                x1=var['Horizontal Mean'] + 1,
+                y0=var['Vertical Mean'] - 1,
+                y1=var['Vertical Mean'] + 1,
+                line=dict(color=color, width=2),
+                fillcolor=color,
+                opacity=0.3,  # Shaded circle for average
+                layer="below"
+            )
+            
+            # Add dotted circle for the variance
             fig.add_shape(
                 type="circle",
                 x0=var['Horizontal Mean'] - np.sqrt(var['Horizontal Variance']),
                 x1=var['Horizontal Mean'] + np.sqrt(var['Horizontal Variance']),
                 y0=var['Vertical Mean'] - np.sqrt(var['Vertical Variance']),
                 y1=var['Vertical Mean'] + np.sqrt(var['Vertical Variance']),
-                line=dict(color=color, width=1),  # Add a thin border
-                fillcolor=color,
-                opacity=0.1,  # Reduce opacity to minimize blending artifacts
+                line=dict(color=color, width=2, dash='dot'),  # Dotted line for variance
                 layer="below"
             )
     
