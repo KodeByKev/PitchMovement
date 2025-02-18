@@ -17,7 +17,7 @@ pitch_types = [
 # Define the custom color mapping for pitch types
 pitch_colors = {
     "Fastball": "red",        # Fastball
-    "Changeup": "green",    # Changeup
+    "Changeup": "lime",    # Changeup
     "Curveball": "blue",    # Curveball
     "Slider": "gold",  # Slider (darker yellow)
     "Sinker": "orange",     # Sinker
