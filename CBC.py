@@ -19,7 +19,7 @@ pitch_colors = {
     "Fastball": "red",        # Fastball
     "Changeup": "green",    # Changeup
     "Curveball": "blue",    # Curveball
-    "Slider": "yellow",     # Slider
+    "Slider": "darkgoldenrod",  # Slider (darker yellow)
     "Sinker": "orange",     # Sinker
     "Splitter": "teal",     # Splitter
     "Cutter": "saddlebrown",  # Cutter
@@ -44,9 +44,6 @@ app.layout = html.Div([
         dcc.Input(id="athlete-name", type="text", value="", placeholder="Enter Athlete Name"),
     ], style={'marginBottom': '10px'}),
     
-    # Subtitle
-    html.H2(id='subtitle', style={'fontFamily': 'Roboto', 'color': 'darkblue'}),
-    
     # Input fields with Pitch at the top
     html.Div([
         html.Label("Pitch", style={'fontFamily': 'Roboto'}),
@@ -64,7 +61,7 @@ app.layout = html.Div([
         dcc.Input(id="vertical-movement", type="number", value=0),
         
         html.Label("Velo (MPH)", style={'fontFamily': 'Roboto'}),
-        dcc.Input(id="pitch-speed", type="number", value=0),
+        dcc.Input(id="pitch-speed", type="number", value=0),  # Fixed type="number"
         
         html.Button('Add Data Point', id='add-point', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
         html.Button('Delete Most Recent Point', id='delete-recent', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
@@ -81,44 +78,54 @@ app.layout = html.Div([
         clearable=False
     ),
     
+    # Delete Last Drawing Button
+    html.Button('Delete Last Drawing', id='delete-last-drawing', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'}),
+    
     # Graph
     dcc.Graph(
         id='movement-graph',
         config={
             'modeBarButtonsToAdd': ['drawopenpath'],  # Enable freehand drawing
-            'scrollZoom': True  # Allow zooming
+            'modeBarButtonsToRemove': [
+                'zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d',
+                'hoverClosestCartesian', 'hoverCompareCartesian', 'toggleSpikelines'
+            ],  # Remove all other tools
+            'toImageButtonOptions': {
+                'format': 'png',  # Ensure the download button saves as PNG
+                'filename': 'pitch_movement_visualization',  # Default filename
+            },
+            'scrollZoom': False  # Disable zooming
         }
     ),
     
     # Hidden div to store the data
-    html.Div(id='data-store', style={'display': 'none'})
+    html.Div(id='data-store', style={'display': 'none'}),
+    
+    # Hidden div to store the drawing shapes
+    dcc.Store(id='drawing-store', data=[])
 ])
-
-# Callback to update the subtitle
-@app.callback(
-    Output('subtitle', 'children'),
-    [Input('athlete-name', 'value')]
-)
-def update_subtitle(athlete_name):
-    return f"{athlete_name} Pitch Movement Visualization"
 
 # Callback to update the graph and data store
 @app.callback(
     [Output('movement-graph', 'figure'),
-     Output('data-store', 'children')],
+     Output('data-store', 'children'),
+     Output('drawing-store', 'data')],
     [Input('add-point', 'n_clicks'),
      Input('delete-recent', 'n_clicks'),
      Input('delete-all', 'n_clicks'),
      Input('reset-axes', 'n_clicks'),
-     Input('movement-graph', 'relayoutData')],  # Capture drawing events
+     Input('movement-graph', 'relayoutData'),  # Capture drawing events
+     Input('delete-last-drawing', 'n_clicks'),  # Handle delete last drawing button
+     Input('athlete-name', 'value')],  # Capture Athlete Name input
     [State('horizontal-movement', 'value'),
      State('vertical-movement', 'value'),
      State('pitch-speed', 'value'),
      State('pitch-type', 'value'),
      State('draw-color', 'value'),  # Get selected drawing color
-     State('data-store', 'children')]
+     State('data-store', 'children'),
+     State('drawing-store', 'data')]
 )
-def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes_clicks, relayout_data, vertical, horizontal, speed, pitch_type, draw_color, data_store):
+def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes_clicks, relayoutData, delete_last_drawing_clicks, athlete_name, vertical, horizontal, speed, pitch_type, draw_color, data_store, drawing_store):
     # Initialize an empty DataFrame if no data exists
     if data_store is None:
         data = pd.DataFrame(columns=['Horizontal (IN)', 'Vertical (IN)', 'Velo (MPH)', 'Pitch', 'Pitch#'])
@@ -149,6 +156,9 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
     elif button_id == 'delete-all' and delete_all_clicks > 0:
         # Delete all data
         data = pd.DataFrame(columns=['Horizontal (IN)', 'Vertical (IN)', 'Velo (MPH)', 'Pitch', 'Pitch#'])
+    elif button_id == 'delete-last-drawing' and delete_last_drawing_clicks > 0 and drawing_store:
+        # Delete the last drawing
+        drawing_store = drawing_store[:-1]  # Remove the last shape
     
     # Calculate variance and mean for each pitch type
     variance_data = []
@@ -167,12 +177,12 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
     # Create the figure
     fig = px.scatter(data, x='Horizontal (IN)', y='Vertical (IN)', 
                      color='Pitch', hover_data=['Velo (MPH)', 'Pitch', 'Pitch#'],
-                     title="Pitch Movement Visualization",
+                     title=f"{athlete_name} Pitch Movement Visualization" if athlete_name else "Pitch Movement Visualization",
                      size_max=20,  # Increase dot size
                      color_discrete_map=pitch_colors)  # Use custom pitch colors
     
     # Update layout for a cool font and larger dots
-    fig.update_traces(marker=dict(size=12))  # Larger dots
+    fig.update_traces(marker=dict(size=15))  # Set data points size to 15
     fig.update_layout(
         font_family="Roboto",
         title_font_size=24,
@@ -237,16 +247,22 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
             )
     
     # Handle drawing events
-    if relayout_data and 'shapes' in relayout_data:
-        for shape in relayout_data['shapes']:
-            # Set the color of the drawn shape to the selected color
-            shape['line'] = {'color': draw_color, 'width': 2}
-            fig.add_shape(shape)
+    if relayoutData and 'shapes' in relayoutData:
+        # Get the new shape from the drawing event
+        new_shape = relayoutData['shapes'][-1]
+        # Set the color of the new shape to the selected draw_color
+        new_shape['line'] = {'color': draw_color, 'width': 2}
+        # Add the new shape to the drawing store
+        drawing_store.append(new_shape)
     
-    # Update the data store
+    # Add all drawing shapes to the figure
+    for shape in drawing_store:
+        fig.add_shape(shape)
+    
+    # Update the data store and drawing store
     data_json = data.to_json(orient='split')
     
-    return fig, data_json
+    return fig, data_json, drawing_store
 
 server = app.server
 
