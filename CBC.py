@@ -19,7 +19,7 @@ pitch_colors = {
     "Fastball": "red",        # Fastball
     "Changeup": "green",    # Changeup
     "Curveball": "blue",    # Curveball
-    "Slider": "darkgoldenrod",  # Slider (darker yellow)
+    "Slider": "gold",  # Slider (darker yellow)
     "Sinker": "orange",     # Sinker
     "Splitter": "teal",     # Splitter
     "Cutter": "saddlebrown",  # Cutter
