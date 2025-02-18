@@ -24,7 +24,6 @@ pitch_colors = {
     "Splitter": "teal",     # Splitter
     "Cutter": "saddlebrown",  # Cutter
     "Sweeper": "goldenrod",   # Sweeper
-    # Default colors for other pitch types
     "Circle Change": "purple",
     "Knuckle Curve": "pink",
     "Slurve": "cyan",
@@ -33,7 +32,20 @@ pitch_colors = {
 
 # Layout of the app
 app.layout = html.Div([
-    html.H1("Pitch Movement Visualization", style={'fontFamily': 'Roboto', 'color': 'darkblue'}),
+    # Logo
+    html.Img(src=app.get_asset_url('CBClogo.png'), style={'height': '100px', 'margin': '10px'}),
+    
+    # Title
+    html.H1("Chapman Baseball Compound", style={'fontFamily': 'Roboto', 'color': 'darkblue'}),
+    
+    # Athlete Name Input
+    html.Div([
+        html.Label("Athlete Name", style={'fontFamily': 'Roboto'}),
+        dcc.Input(id="athlete-name", type="text", value="", placeholder="Enter Athlete Name"),
+    ], style={'marginBottom': '10px'}),
+    
+    # Subtitle
+    html.H2(id='subtitle', style={'fontFamily': 'Roboto', 'color': 'darkblue'}),
     
     # Input fields with Pitch at the top
     html.Div([
@@ -41,7 +53,7 @@ app.layout = html.Div([
         dcc.Dropdown(
             id="pitch-type",
             options=[{"label": pitch, "value": pitch} for pitch in pitch_types],
-            value="2-seam",  # Default value
+            value="Fastball",  # Default value
             clearable=False  # Prevent users from clearing the selection
         ),
         
@@ -60,12 +72,35 @@ app.layout = html.Div([
         html.Button('Reset Axes', id='reset-axes', n_clicks=0, style={'fontFamily': 'Roboto', 'margin': '10px'})
     ]),
     
+    # Drawing tool
+    html.Label("Select Draw Color (Pitch Type)", style={'fontFamily': 'Roboto'}),
+    dcc.Dropdown(
+        id="draw-color",
+        options=[{"label": pitch, "value": pitch_colors[pitch]} for pitch in pitch_types],
+        value="red",  # Default color
+        clearable=False
+    ),
+    
     # Graph
-    dcc.Graph(id='movement-graph'),
+    dcc.Graph(
+        id='movement-graph',
+        config={
+            'modeBarButtonsToAdd': ['drawopenpath'],  # Enable freehand drawing
+            'scrollZoom': True  # Allow zooming
+        }
+    ),
     
     # Hidden div to store the data
     html.Div(id='data-store', style={'display': 'none'})
 ])
+
+# Callback to update the subtitle
+@app.callback(
+    Output('subtitle', 'children'),
+    [Input('athlete-name', 'value')]
+)
+def update_subtitle(athlete_name):
+    return f"{athlete_name} Pitch Movement Visualization"
 
 # Callback to update the graph and data store
 @app.callback(
@@ -74,14 +109,16 @@ app.layout = html.Div([
     [Input('add-point', 'n_clicks'),
      Input('delete-recent', 'n_clicks'),
      Input('delete-all', 'n_clicks'),
-     Input('reset-axes', 'n_clicks')],
+     Input('reset-axes', 'n_clicks'),
+     Input('movement-graph', 'relayoutData')],  # Capture drawing events
     [State('horizontal-movement', 'value'),
      State('vertical-movement', 'value'),
      State('pitch-speed', 'value'),
      State('pitch-type', 'value'),
+     State('draw-color', 'value'),  # Get selected drawing color
      State('data-store', 'children')]
 )
-def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes_clicks, vertical, horizontal, speed, pitch_type, data_store):
+def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes_clicks, relayout_data, vertical, horizontal, speed, pitch_type, draw_color, data_store):
     # Initialize an empty DataFrame if no data exists
     if data_store is None:
         data = pd.DataFrame(columns=['Horizontal (IN)', 'Vertical (IN)', 'Velo (MPH)', 'Pitch', 'Pitch#'])
@@ -198,6 +235,13 @@ def update_graph(add_clicks, delete_recent_clicks, delete_all_clicks, reset_axes
                 line=dict(color=color, width=2, dash='dot'),  # Dotted line for variance
                 layer="below"
             )
+    
+    # Handle drawing events
+    if relayout_data and 'shapes' in relayout_data:
+        for shape in relayout_data['shapes']:
+            # Set the color of the drawn shape to the selected color
+            shape['line'] = {'color': draw_color, 'width': 2}
+            fig.add_shape(shape)
     
     # Update the data store
     data_json = data.to_json(orient='split')
