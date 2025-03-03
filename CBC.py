@@ -31,6 +31,7 @@ pitch_colors = {
 }
 
 # Layout of the app
+# Layout of the app
 app.layout = html.Div([
     # Logo
     html.Img(src=app.get_asset_url('CBClogo.png'), style={'height': '100px', 'margin': '10px'}),
@@ -54,11 +55,12 @@ app.layout = html.Div([
             clearable=False  # Prevent users from clearing the selection
         ),
         
-        html.Label("Horizontal (IN)", style={'fontFamily': 'Roboto'}),
-        dcc.Input(id="horizontal-movement", type="number", value=0),
-        
+        # Swapped order of vertical and horizontal input boxes
         html.Label("Vertical (IN)", style={'fontFamily': 'Roboto'}),
         dcc.Input(id="vertical-movement", type="number", value=0),
+        
+        html.Label("Horizontal (IN)", style={'fontFamily': 'Roboto'}),
+        dcc.Input(id="horizontal-movement", type="number", value=0),
         
         html.Label("Velo (MPH)", style={'fontFamily': 'Roboto'}),
         dcc.Input(id="pitch-speed", type="number", value=0),  # Fixed type="number"
@@ -122,6 +124,7 @@ app.layout = html.Div([
     # Hidden div to store the shaded circles
     dcc.Store(id='shaded-circles-store', data=[])
 ])
+
 
 # Callback to update the graph and data store
 # Callback to update the graph and data store
